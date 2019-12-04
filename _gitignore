@@ -1,0 +1,17 @@
+.vscode
+.vagrant
+node_modules
+mine-ctrl/.env
+es-source
+*/customer-portal/reports/monthly/*
+*/customer-portal/reports/weekly/*
+*/customer-portal/reports/*test*
+*/customer-portal/server/salts/*
+*/customer-portal/server/nodelogs*
+.vscode/
+*.swp
+__pycache__
+
+lab/producers/slushpool/package-lock\.json
+
+lab/producers/slushpool/nodelogs
