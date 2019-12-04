@@ -1,0 +1,68 @@
+#!/usr/bin/ruby
+
+require 'json'
+require 'byebug'
+require 'date'
+
+loop do
+
+for account in `ls account`.strip.split("\n")
+  directories = `ls account/#{account}/`.strip.split("\n").select {|i| i=~/^20/}
+  `touch log_workers/#{account}.log`
+  s = `tail -n 1 log_workers/#{account}.log`
+  ts = if s.size > 0
+    DateTime.parse(JSON.parse(s)['timestamp']).to_time
+  else
+    Time.now - 365*24*3600 # 1 year ago
+  end
+
+  for dir in directories
+    files = `ls account/#{account}/#{dir}/`.strip.split("\n")
+
+    for _file in files
+      # skip based on ts
+      next if (ts_new = DateTime.parse(_file).to_time) <= ts
+      puts file = "account/#{account}/#{dir}/#{_file}"
+      begin
+        h = JSON.parse(File.read(file))
+        workers = h['workers']
+        h.delete('workers')
+        h['timestamp'] = ts_new
+        open("log_workers/#{account}.log",'a') do |fout| 
+          fout.puts h.to_json
+          workers.each do |k, v|
+            v['worker'] = k
+            v['timestamp'] = ts_new
+            fout.puts v.to_json
+          end
+        end
+      rescue
+        puts "invalid json: #{file}"
+        next
+      end
+      # ["username", "unconfirmed_reward", "rating", "nmc_send_threshold", "unconfirmed_nmc_reward", "estimated_reward", "hashrate", "confirmed_nmc_reward", "send_threshold", "confirmed_reward", "workers", "wallet"]
+
+
+=begin
+  count1 = h['workers'].to_a.select {|i| i[1]['shares']>0}.size
+  count2 = h['workers'].to_a.select {|i| i[1]['alive']}.size
+  count3 = h['workers'].to_a.select {|i| i[1]['hashrate']>0}.size
+  byebug unless count1 == count2
+  shares = h['workers'].to_a.select {|i| i[1]['shares']>0}.reduce(0) {|sum, i| sum += i[1]['shares']}
+  hrate = h['workers'].to_a.select {|i| i[1]['hashrate']>0}.reduce(0) {|sum, i| sum += i[1]['hashrate']}
+
+  workers = h['workers'].keys unless workers
+  byebug unless workers == h['workers'].keys
+
+  hashrates = workers.map {|w| h['workers'][w]['hashrate']}
+  fout.puts hashrates.join("\t")
+  arr << hashrates
+
+  puts [file, h['hashrate'], hrate, (h['hashrate'].to_f- hrate.to_f)/hrate.to_f, count1, count3, shares].join("\t")
+=end
+    end # file
+  end # dir
+end
+
+sleep(2)
+end # loop do
